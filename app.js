@@ -4,6 +4,7 @@ const express = require("express");
 const morgan = require("morgan");
 const multer = require("multer");
 const app = express();
+var cors = require("cors");
 const path = require("path");
 const uuid = require("uuid");
 
@@ -13,13 +14,15 @@ app.use(morgan("combined"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(cors());
+
 const upload = multer({
   storage: multer.memoryStorage(),
 });
 
-const supabase = createClient(process.env.url, process.env.apiKey);
+const supabase = createClient(URL_SUPABASE, API_KEY_SUPABASE);
 
-const urlPublic = `${process.env.apiKey}/storage/v1/object/public/foto_menu/`;
+const urlPublic = `${URL_SUPABASE}/storage/v1/object/public/foto_menu/`;
 
 app.get("/food_menu", async (req, res) => {
   const { data, error } = await supabase.from("food_menu").select();
@@ -81,7 +84,6 @@ app.post("/food_menu", upload.single("image"), async (req, res) => {
 
   var body = {
     name: req.body.name,
-    qty: req.body.qty,
     price: req.body.price,
     id: id,
   };
@@ -120,13 +122,12 @@ app.post("/food_menu", upload.single("image"), async (req, res) => {
   });
 });
 
-app.put("/food_menu/:id", async (req, res) => {
+app.put("/food_menu/:id", upload.single("image"), async (req, res) => {
   const file = req.file;
   const id = req.params.id;
 
   var body = {
     name: req.body.name,
-    qty: req.body.qty,
     price: req.body.price,
   };
 
@@ -148,6 +149,8 @@ app.put("/food_menu/:id", async (req, res) => {
       image: data.path,
     };
   }
+
+  console.log(id, body);
 
   const { error } = await supabase.from("food_menu").update(body).eq("id", id);
   if (error) {
